@@ -1,4 +1,5 @@
 #!.venv/bin/python
+# coding: utf-8
 
 import os
 import sys
@@ -116,8 +117,12 @@ def get_label(typ, data, kb=0):
         return '{} (mean: {:.2f})'.format(typ, np.mean(data))
 
 @FuncFormatter
-def kb_formatter(n, pos):
-    return '{}kb'.format(int(n / 1024))
+def sec_formatter(x, pos):
+    return '{}s'.format(x)
+
+@FuncFormatter
+def kb_formatter(x, pos):
+    return '{}kb'.format(int(x / 1024))
 
 def draw_graph(results, dis_info, title):
     ids = [res.asset.asset_id for res in results]
@@ -140,21 +145,22 @@ def draw_graph(results, dis_info, title):
     fig, (ax_score, ax_time, ax_size) = plt.subplots(3, 1, figsize=(10, 12))
     fig.suptitle(title, fontsize=18)
 
-    ax_score.set_title('VMAF')
+    ax_score.set_title(u'VMAF ↑')
     ax_score.xaxis.set_visible(False)
     ax_score.plot(im_scores, 'C0o', label=get_label('i', im_scores))
     ax_score.plot(svtav1_scores, 'C1o', label=get_label('s', svtav1_scores))
     ax_score.plot(libaom_scores, 'C3o', label=get_label('l', libaom_scores))
     ax_score.legend(loc='lower right')
 
-    ax_time.set_title('Encoding time')
+    ax_time.set_title(u'Encoding time ↓')
     ax_time.xaxis.set_visible(False)
+    ax_time.yaxis.set_major_formatter(sec_formatter)
     ax_time.plot(im_times, 'C0o', label=get_label('i', im_times))
     ax_time.plot(svtav1_times, 'C1o', label=get_label('s', svtav1_times))
     ax_time.plot(libaom_times, 'C3o', label=get_label('l', libaom_times))
     ax_time.legend(loc='lower right')
 
-    ax_size.set_title('File size')
+    ax_size.set_title('File size =')
     ax_size.xaxis.set_visible(False)
     ax_size.yaxis.set_major_formatter(kb_formatter)
     ax_size.plot(im_sizes, 'C0o', label=get_label('i', im_sizes, 1))

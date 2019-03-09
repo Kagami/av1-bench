@@ -63,7 +63,7 @@ graph:
 still: prepare $(STILL_JPG) $(STILL_IVF) $(STILL_WEBM) graph
 
 clean:
-	rm -rf ref/still-16 dis
+	rm -rf ref/still-16 dis/still
 
-distclean: clean
-	rm -rf ref .venv
+distclean:
+	rm -rf ref dis .venv
