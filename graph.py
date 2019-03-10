@@ -109,12 +109,12 @@ def get_assets():
         }
     return assets, dis_info
 
-def get_label(typ, data, kb=0):
+def get_label(typ, data, sec=0, kb=0):
     typ = IM_TYPE if typ == 'i' else SVTAV1_TYPE if typ == 's' else LIBAOM_TYPE
     if kb:
         return '{} (mean: {:.2f}kb)'.format(typ, np.mean(data) / 1024)
     else:
-        return '{} (mean: {:.2f})'.format(typ, np.mean(data))
+        return '{} (mean: {:.2f}{})'.format(typ, np.mean(data), 's' if sec else '')
 
 @FuncFormatter
 def sec_formatter(x, pos):
@@ -155,17 +155,17 @@ def draw_graph(results, dis_info, title):
     ax_time.set_title(u'Encoding time ↓')
     ax_time.xaxis.set_visible(False)
     ax_time.yaxis.set_major_formatter(sec_formatter)
-    ax_time.plot(im_times, 'C0o', label=get_label('i', im_times))
-    ax_time.plot(svtav1_times, 'C1o', label=get_label('s', svtav1_times))
-    ax_time.plot(libaom_times, 'C3o', label=get_label('l', libaom_times))
+    ax_time.plot(im_times, 'C0o', label=get_label('i', im_times, sec=1))
+    ax_time.plot(svtav1_times, 'C1o', label=get_label('s', svtav1_times, sec=1))
+    ax_time.plot(libaom_times, 'C3o', label=get_label('l', libaom_times, sec=1))
     ax_time.legend(loc='lower right')
 
     ax_size.set_title('File size =')
     ax_size.xaxis.set_visible(False)
     ax_size.yaxis.set_major_formatter(kb_formatter)
-    ax_size.plot(im_sizes, 'C0o', label=get_label('i', im_sizes, 1))
-    ax_size.plot(svtav1_sizes, 'C1o', label=get_label('s', svtav1_sizes, 1))
-    ax_size.plot(libaom_sizes, 'C3o', label=get_label('l', libaom_sizes, 1))
+    ax_size.plot(im_sizes, 'C0o', label=get_label('i', im_sizes, kb=1))
+    ax_size.plot(svtav1_sizes, 'C1o', label=get_label('s', svtav1_sizes, kb=1))
+    ax_size.plot(libaom_sizes, 'C3o', label=get_label('l', libaom_sizes, kb=1))
     ax_size.legend(loc='lower right')
 
     return fig
