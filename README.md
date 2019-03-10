@@ -1,6 +1,6 @@
 # av1-bench
 
-AV1 encoders benchmark for some specific use-cases.
+AV1 encoders benchmarks for specific use-cases.
 
 ## Still-image
 
