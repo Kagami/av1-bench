@@ -14,7 +14,7 @@ from matplotlib.ticker import FuncFormatter
 from vmaf.core.asset import Asset
 from vmaf.core.quality_runner import VmafQualityRunner
 
-REF_DIR = 'ref/still-16'
+REF_DIR = 'ref/still-32'
 DIS_DIR = 'dis/still'
 TIME_LOG_FNAME = 'time.csv'
 GRAPH_FNAME = 'graph.png'
@@ -118,7 +118,7 @@ def get_label(typ, data, kb=0):
 
 @FuncFormatter
 def sec_formatter(x, pos):
-    return '{}s'.format(x)
+    return '{}s'.format(int(x))
 
 @FuncFormatter
 def kb_formatter(x, pos):
