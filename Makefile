@@ -1,17 +1,23 @@
 STILL_Y4M = $(wildcard ref/still/*.y4m)
 STILL_Y4M_32 = $(patsubst ref/still/%.y4m,ref/still-32/%.y4m,$(STILL_Y4M))
 STILL_AOMIVF = $(patsubst ref/still-32/%.y4m,dis/still/%.aom.ivf,$(STILL_Y4M_32))
+STILL_RAVIVF = $(patsubst ref/still-32/%.y4m,dis/still/%.rav.ivf,$(STILL_Y4M_32))
 STILL_SVTIVF = $(patsubst ref/still-32/%.y4m,dis/still/%.svt.ivf,$(STILL_Y4M_32))
 STILL_JPGJPG = $(patsubst ref/still-32/%.y4m,dis/still/%.jpg.jpg,$(STILL_Y4M_32))
 TIME_LOG = dis/still/time.csv
 .PRECIOUS: $(STILL_Y4M_32)
 
 VMAF_REPO_PATH ?= ../tmp/vmaf
+RAV1E_REPO_PATH ?= ../tmp/rav1e
 SVTAV1_REPO_PATH ?= ../tmp/SVT-AV1
 
 LIBAOM_VERSION := $(shell aomenc --help |& sed -nr 's/.*AOMedia Project AV1 Encoder .*-g(\w+) .*/\1/p')
 LIBAOM_CPU_USED = 0
 LIBAOM_CQ_LEVEL = 35
+
+RAV1E_VERSION := $(shell sh -c "cd '$(RAV1E_REPO_PATH)' && git rev-parse --short HEAD")
+RAV1E_SPEED = 3
+RAV1E_QUANTIZER  = 150
 
 SVTAV1_VERSION := $(shell sh -c "cd '$(SVTAV1_REPO_PATH)' && git rev-parse --short HEAD")
 SVTAV1_ENC_MODE = 0
@@ -21,9 +27,12 @@ LIBJPEG_VERSION := $(shell cjpeg -version |& sed -nr 's/.*version ([^ ]+) .*/\1/
 LIBJPEG_QUALITY = 18
 
 define TITLE
-libaom-$(LIBAOM_VERSION) (-cpu-used $(LIBAOM_CPU_USED) -cq-level $(LIBAOM_CQ_LEVEL))
+$(shell lscpu | sed -n 's/^Model name: *//p')
+libaom-$(LIBAOM_VERSION) (--cpu-used $(LIBAOM_CPU_USED) --cq-level $(LIBAOM_CQ_LEVEL))
+rav1e-$(RAV1E_VERSION) (--speed $(RAV1E_SPEED) --quantizer $(RAV1E_QUANTIZER))
 SVT-AV1-$(SVTAV1_VERSION) (-enc-mode $(SVTAV1_ENC_MODE) -qp $(SVTAV1_QP))
 libjpeg-$(LIBJPEG_VERSION) (-quality $(LIBJPEG_QUALITY))
+
 endef
 export TITLE
 
@@ -38,6 +47,11 @@ dis/still/%.aom.ivf: ref/still-32/%.y4m
 		--end-usage=q --cq-level=$(LIBAOM_CQ_LEVEL) \
 		--threads=8 --row-mt=1 --tile-columns=1 --tile-rows=1 --frame-parallel=0 \
 		2>>$(TIME_LOG)
+
+dis/still/%.rav.ivf: ref/still-32/%.y4m
+	time -f "$(notdir $@)|%e" rav1e "$^" -o "$@" \
+		--speed=$(RAV1E_SPEED) --quantizer=$(RAV1E_QUANTIZER) \
+		|& grep '|[0-9.]\+$$' >>$(TIME_LOG)
 
 dis/still/%.svt.ivf: ref/still-32/%.y4m
 	time -f "$(notdir $@)|%e" SvtAv1EncApp -i "$^" -b "$@" \
@@ -69,7 +83,7 @@ prepare: ref .venv
 graph:
 	PYTHONPATH=$(VMAF_REPO_PATH)/python/src ./graph.py "$$TITLE"
 
-still: prepare $(STILL_AOMIVF) $(STILL_SVTIVF) $(STILL_JPGJPG) graph
+still: prepare $(STILL_AOMIVF) $(STILL_RAVIVF) $(STILL_SVTIVF) $(STILL_JPGJPG) graph
 
 clean:
 	rm -rf ref/still-32 dis/still

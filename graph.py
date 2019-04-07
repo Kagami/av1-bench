@@ -19,9 +19,11 @@ DIS_DIR = 'dis/still'
 TIME_LOG_FNAME = 'time.csv'
 GRAPH_FNAME = 'graph.png'
 
-LIBAOM_TYPE = A = 'libaom'
-SVTAV1_TYPE = S = 'SVT-AV1'
-LIBJPEG_TYPE = J = 'libjpeg'
+LIBAOM_TYPE = 'libaom'
+SVTAV1_TYPE = 'SVT-AV1'
+RAV1E_TYPE = 'rav1e'
+LIBJPEG_TYPE = 'libjpeg'
+TYPES = [LIBAOM_TYPE, RAV1E_TYPE, SVTAV1_TYPE, LIBJPEG_TYPE]
 
 def get_ref_name(fname):
     bare1 = Path.splitext(fname)[0]
@@ -75,11 +77,13 @@ def get_assets():
     assets = []
     dis_info = {}
     time_info = get_time_info()
-    for dname in os.listdir(DIS_DIR):
+    for dname in sorted(os.listdir(DIS_DIR)):
         if dname.endswith('.aom.ivf'):
             dtype = LIBAOM_TYPE
         elif dname.endswith('.svt.ivf'):
             dtype = SVTAV1_TYPE
+        elif dname.endswith('.rav.ivf'):
+            dtype = RAV1E_TYPE
         elif dname.endswith('.jpg.jpg'):
             dtype = LIBJPEG_TYPE
         else:
@@ -126,47 +130,35 @@ def kb_formatter(x, pos):
     return '{}kb'.format(int(x / 1024))
 
 def draw_graph(results, dis_info, title):
-    ids = [res.asset.asset_id for res in results]
-    libaom_ids = [aid for aid in ids if dis_info[aid]['type'] == LIBAOM_TYPE]
-    svtav1_ids = [aid for aid in ids if dis_info[aid]['type'] == SVTAV1_TYPE]
-    libjpeg_ids = [aid for aid in ids if dis_info[aid]['type'] == LIBJPEG_TYPE]
-
-    libaom_scores = [res.result_dict['VMAF_scores'][0] for res in results if res.asset.asset_id in libaom_ids]
-    svtav1_scores = [res.result_dict['VMAF_scores'][0] for res in results if res.asset.asset_id in svtav1_ids]
-    libjpeg_scores = [res.result_dict['VMAF_scores'][0] for res in results if res.asset.asset_id in libjpeg_ids]
-
-    libaom_times = [dis_info[aid]['encode_time'] for aid in libaom_ids]
-    svtav1_times = [dis_info[aid]['encode_time'] for aid in svtav1_ids]
-    libjpeg_times = [dis_info[aid]['encode_time'] for aid in libjpeg_ids]
-
-    libaom_sizes = [dis_info[aid]['size'] for aid in libaom_ids]
-    svtav1_sizes = [dis_info[aid]['size'] for aid in svtav1_ids]
-    libjpeg_sizes = [dis_info[aid]['size'] for aid in libjpeg_ids]
-
-    fig, (ax_score, ax_time, ax_size) = plt.subplots(3, 1, figsize=(10, 12))
+    all_ids = [res.asset.asset_id for res in results]
+    fig, axes = plt.subplots(3, 1, figsize=(10, 12), constrained_layout=True)
+    ax_score, ax_time, ax_size = axes
     fig.suptitle(title, fontsize=16)
+    colors = ['C3o', 'C7o', 'C1o', 'C0o']
+    for typ, color in zip(TYPES, colors):
+        ids = [aid for aid in all_ids if dis_info[aid]['type'] == typ]
+
+        scores = [res.result_dict['VMAF_scores'][0] for res in results if res.asset.asset_id in ids]
+        ax_score.plot(scores, color, label=get_label(typ, scores))
+
+        times = [dis_info[aid]['encode_time'] for aid in ids]
+        ax_time.plot(times, color, label=get_label(typ, times, sec=1))
+
+        sizes = [dis_info[aid]['size'] for aid in ids]
+        ax_size.plot(sizes, color, label=get_label(typ, sizes, kb=1))
 
     ax_score.set_title(u'VMAF ↑')
     ax_score.xaxis.set_visible(False)
-    ax_score.plot(libaom_scores, 'C3o', label=get_label(A, libaom_scores))
-    ax_score.plot(svtav1_scores, 'C1o', label=get_label(S, svtav1_scores))
-    ax_score.plot(libjpeg_scores, 'C0o', label=get_label(J, libjpeg_scores))
     ax_score.legend(loc='lower right')
 
     ax_time.set_title(u'Encode time ↓')
     ax_time.xaxis.set_visible(False)
     ax_time.yaxis.set_major_formatter(sec_formatter)
-    ax_time.plot(libaom_times, 'C3o', label=get_label(A, libaom_times, sec=1))
-    ax_time.plot(svtav1_times, 'C1o', label=get_label(S, svtav1_times, sec=1))
-    ax_time.plot(libjpeg_times, 'C0o', label=get_label(J, libjpeg_times, sec=1))
     ax_time.legend(loc='lower right')
 
     ax_size.set_title(u'File size ≈')
     ax_size.xaxis.set_visible(False)
     ax_size.yaxis.set_major_formatter(kb_formatter)
-    ax_size.plot(libaom_sizes, 'C3o', label=get_label(A, libaom_sizes, kb=1))
-    ax_size.plot(svtav1_sizes, 'C1o', label=get_label(S, svtav1_sizes, kb=1))
-    ax_size.plot(libjpeg_sizes, 'C0o', label=get_label(J, libjpeg_sizes, kb=1))
     ax_size.legend(loc='lower right')
 
     return fig
@@ -178,7 +170,7 @@ def main():
     runner.run()
     fig = draw_graph(runner.results, dis_info, title)
     gpath = get_graph_path()
-    fig.savefig(gpath, bbox_inches='tight')
+    fig.savefig(gpath)
     print 'Saved graph to ' + gpath
 
 if __name__ == '__main__':
