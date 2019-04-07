@@ -19,15 +19,17 @@ DIS_DIR = 'dis/still'
 TIME_LOG_FNAME = 'time.csv'
 GRAPH_FNAME = 'graph.png'
 
-IM_TYPE = 'ImageMagick'
-SVTAV1_TYPE = 'SVT-AV1'
-LIBAOM_TYPE = 'libaom'
+LIBAOM_TYPE = A = 'libaom'
+SVTAV1_TYPE = S = 'SVT-AV1'
+LIBJPEG_TYPE = J = 'libjpeg'
 
 def get_ref_name(fname):
-    return Path.splitext(fname)[0] + '.y4m'
+    bare1 = Path.splitext(fname)[0]
+    bare2 = Path.splitext(bare1)[0]
+    return bare2 + '.y4m'
 
-def get_ref_path(fname):
-    return Path.join(REF_DIR, get_ref_name(fname))
+def get_ref_path(rname):
+    return Path.join(REF_DIR, rname)
 
 def get_dis_path(fname):
     return Path.join(DIS_DIR, fname)
@@ -74,16 +76,16 @@ def get_assets():
     dis_info = {}
     time_info = get_time_info()
     for dname in os.listdir(DIS_DIR):
-        if dname.endswith('.jpg'):
-            dtype = IM_TYPE
-        elif dname.endswith('.ivf'):
-            dtype = SVTAV1_TYPE
-        elif dname.endswith('.webm'):
+        if dname.endswith('.aom.ivf'):
             dtype = LIBAOM_TYPE
+        elif dname.endswith('.svt.ivf'):
+            dtype = SVTAV1_TYPE
+        elif dname.endswith('.jpg.jpg'):
+            dtype = LIBJPEG_TYPE
         else:
             continue
         rname = get_ref_name(dname)
-        rpath = get_ref_path(dname)
+        rpath = get_ref_path(rname)
         dpath = get_dis_path(dname)
         qwidth, qheight = get_cached_width_height(ref_info, rname)
         asset_opts = {
@@ -110,7 +112,6 @@ def get_assets():
     return assets, dis_info
 
 def get_label(typ, data, sec=0, kb=0):
-    typ = IM_TYPE if typ == 'i' else SVTAV1_TYPE if typ == 's' else LIBAOM_TYPE
     if kb:
         return '{} (mean: {:.2f}kb)'.format(typ, np.mean(data) / 1024)
     else:
@@ -126,52 +127,52 @@ def kb_formatter(x, pos):
 
 def draw_graph(results, dis_info, title):
     ids = [res.asset.asset_id for res in results]
-    im_ids = [aid for aid in ids if dis_info[aid]['type'] == IM_TYPE]
-    svtav1_ids = [aid for aid in ids if dis_info[aid]['type'] == SVTAV1_TYPE]
     libaom_ids = [aid for aid in ids if dis_info[aid]['type'] == LIBAOM_TYPE]
+    svtav1_ids = [aid for aid in ids if dis_info[aid]['type'] == SVTAV1_TYPE]
+    libjpeg_ids = [aid for aid in ids if dis_info[aid]['type'] == LIBJPEG_TYPE]
 
-    im_scores = [res.result_dict['VMAF_scores'][0] for res in results if res.asset.asset_id in im_ids]
-    svtav1_scores = [res.result_dict['VMAF_scores'][0] for res in results if res.asset.asset_id in svtav1_ids]
     libaom_scores = [res.result_dict['VMAF_scores'][0] for res in results if res.asset.asset_id in libaom_ids]
+    svtav1_scores = [res.result_dict['VMAF_scores'][0] for res in results if res.asset.asset_id in svtav1_ids]
+    libjpeg_scores = [res.result_dict['VMAF_scores'][0] for res in results if res.asset.asset_id in libjpeg_ids]
 
-    im_times = [dis_info[aid]['encode_time'] for aid in im_ids]
-    svtav1_times = [dis_info[aid]['encode_time'] for aid in svtav1_ids]
     libaom_times = [dis_info[aid]['encode_time'] for aid in libaom_ids]
+    svtav1_times = [dis_info[aid]['encode_time'] for aid in svtav1_ids]
+    libjpeg_times = [dis_info[aid]['encode_time'] for aid in libjpeg_ids]
 
-    im_sizes = [dis_info[aid]['size'] for aid in im_ids]
-    svtav1_sizes = [dis_info[aid]['size'] for aid in svtav1_ids]
     libaom_sizes = [dis_info[aid]['size'] for aid in libaom_ids]
+    svtav1_sizes = [dis_info[aid]['size'] for aid in svtav1_ids]
+    libjpeg_sizes = [dis_info[aid]['size'] for aid in libjpeg_ids]
 
     fig, (ax_score, ax_time, ax_size) = plt.subplots(3, 1, figsize=(10, 12))
-    fig.suptitle(title, fontsize=18)
+    fig.suptitle(title, fontsize=16)
 
     ax_score.set_title(u'VMAF ↑')
     ax_score.xaxis.set_visible(False)
-    ax_score.plot(im_scores, 'C0o', label=get_label('i', im_scores))
-    ax_score.plot(svtav1_scores, 'C1o', label=get_label('s', svtav1_scores))
-    ax_score.plot(libaom_scores, 'C3o', label=get_label('l', libaom_scores))
+    ax_score.plot(libaom_scores, 'C3o', label=get_label(A, libaom_scores))
+    ax_score.plot(svtav1_scores, 'C1o', label=get_label(S, svtav1_scores))
+    ax_score.plot(libjpeg_scores, 'C0o', label=get_label(J, libjpeg_scores))
     ax_score.legend(loc='lower right')
 
-    ax_time.set_title(u'Encoding time ↓')
+    ax_time.set_title(u'Encode time ↓')
     ax_time.xaxis.set_visible(False)
     ax_time.yaxis.set_major_formatter(sec_formatter)
-    ax_time.plot(im_times, 'C0o', label=get_label('i', im_times, sec=1))
-    ax_time.plot(svtav1_times, 'C1o', label=get_label('s', svtav1_times, sec=1))
-    ax_time.plot(libaom_times, 'C3o', label=get_label('l', libaom_times, sec=1))
+    ax_time.plot(libaom_times, 'C3o', label=get_label(A, libaom_times, sec=1))
+    ax_time.plot(svtav1_times, 'C1o', label=get_label(S, svtav1_times, sec=1))
+    ax_time.plot(libjpeg_times, 'C0o', label=get_label(J, libjpeg_times, sec=1))
     ax_time.legend(loc='lower right')
 
-    ax_size.set_title('File size =')
+    ax_size.set_title(u'File size ≈')
     ax_size.xaxis.set_visible(False)
     ax_size.yaxis.set_major_formatter(kb_formatter)
-    ax_size.plot(im_sizes, 'C0o', label=get_label('i', im_sizes, kb=1))
-    ax_size.plot(svtav1_sizes, 'C1o', label=get_label('s', svtav1_sizes, kb=1))
-    ax_size.plot(libaom_sizes, 'C3o', label=get_label('l', libaom_sizes, kb=1))
+    ax_size.plot(libaom_sizes, 'C3o', label=get_label(A, libaom_sizes, kb=1))
+    ax_size.plot(svtav1_sizes, 'C1o', label=get_label(S, svtav1_sizes, kb=1))
+    ax_size.plot(libjpeg_sizes, 'C0o', label=get_label(J, libjpeg_sizes, kb=1))
     ax_size.legend(loc='lower right')
 
     return fig
 
 def main():
-    title = sys.argv[1] if len(sys.argv) > 1 else 'SVT-AV1 vs libaom'
+    title = sys.argv[1]
     assets, dis_info = get_assets()
     runner = VmafQualityRunner(assets, logger=None)
     runner.run()

@@ -7,13 +7,13 @@ AV1 encoders benchmarks for specific use-cases.
 Comparision of [libaom](https://aomedia.googlesource.com/aom/) and
 [SVT-AV1](https://github.com/OpenVisualCloud/SVT-AV1) for still-image coding on
 subset1 from [derf's collection](https://media.xiph.org/video/derf/). JPEG
-files are also encoded for the reference with ImageMagick (libjpeg).
+files are also encoded with libjpeg for the reference.
 
 ![](graphs/still1.png)
 
 ## Usage
 
-Setup make, FFmpeg, ImageMagick, VMAF, libaom, SVT-AV1 and run:
+Setup make, FFmpeg, VMAF, libaom, SVT-AV1, libjpeg and run:
 
 ```
 make
